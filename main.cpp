@@ -81,7 +81,6 @@ void debug(const char* format, ...){
 ////////////////////////
 
 
-
 // std::fill of multi dimensions
 template<typename A, size_t N, typename T>
 void Fill(A (&array)[N], const T &val){
@@ -90,42 +89,9 @@ void Fill(A (&array)[N], const T &val){
              val );
 }
 
-// binary search
-ll BSearch(ll ok, ll ng, bool (*f)(ll)){
-  ll mid;
-  while(abs(ok - ng) > 1LL) {
-    mid =  (ok + ng) / 2LL;
-    if(f(mid)) {
-      debug("BSearch: f(%d) == true\n", mid);
-      ok = mid;
-    }
-    else
-    {
-      debug("BSearch: f(%d) == false\n", mid);
-      ng = mid;
-    }
-  }
-  return ok;
-}
-
-
 // frequently used constants
 static const int di[] = {-1, 0, 1, 0};
 static const int dj[] = {0, 1, 0, -1};
-
-static const int di8[] = {-1, 0, 1, -1, 1, -1, 0, 1};
-static const int dj8[] = {-1, -1, -1, 0, 0, 1, 1, 1};
-
-// frequently used structs
-struct edge{
-  int to,cost;
-};
-
-string YesNo(bool isYes) {
-  return isYes ? "Yes" : "No";
-}
-
-ll NUM_TEST_CASE = 1;
 
 ////////////////////////////////////////////////////////////////////////////////////
 ///////// Main /////////////////////////////////////////////////////////////////////
@@ -149,6 +115,7 @@ void greedy(){
   // TODO
   ans = {{{0, 0}, 100}};
 }
+
 ll calc_diff(){
   ll diff = 0;
   FOR(i,N)
@@ -156,6 +123,7 @@ ll calc_diff(){
       diff += abs(A[i][j] - B[i][j]);
   return diff;
 }
+
 void create_branch() {
   for (int i = 0; i < NUM_BRANCH; i++)
   {
@@ -176,19 +144,23 @@ void create_branch() {
     }
   }
 }
+
 void select_branch() {
   // TODO
   ans = branch[0];
 }
+
 void update_NOM() {
   // TODO
   --NOM;
 }
+
 ll calc_score(ans_t ans_cand){
   ll basePoints = 2e8 - calc_diff();
   // TODO: calc bonus
   return basePoints;
 }
+
 void calc_B(ans_t ans_cand){
   // TODO
   // for (size_t i = 0; i < ans.size(); i++)
@@ -197,16 +169,18 @@ void calc_B(ans_t ans_cand){
   // }
   FOR(i,N) FOR(j,N) B[i][j] = rand() % AMAX;
 }
+
 void debug(){
   // output debug information
   // FOR(j,N) { DUMPV(A[j], N); cout << endl; }
   cout << "ans: " << endl;
-  for (size_t i = 0; i < ans.size(); i++)
+  for (int i = 0; i < ans.size(); i++)
   {
     printf("i: %d, X: %d, Y: %d, H: %lld\n",
       i, ans[i].pos.fi, ans[i].pos.se, ans[i].h);
   }
 }
+
 void solve(){
   // まずいっこ
   NOM = 100;
@@ -224,6 +198,7 @@ void solve(){
     ++t;
   }
 }
+
 void answer(){
   // output answer
 
@@ -235,33 +210,24 @@ void answer(){
     ans[i].pos.second,
     ans[i].h);
 }
-void answerYesNo(){
-  // output answer
-  // cout << YesNo((bool)(ans)) << endl;
-}
+
 void init(){
   // initialize for each test case
   Fill(B, 0);
 }
+
 int main(int argc, char const *argv[])
 {
-  // operate inputs
-
-  // cin >> NUM_TEST_CASE;
-
-  for (int test_case = 0; test_case < NUM_TEST_CASE; ++test_case)
-  {
-    init();
-    N = 100;
-    for(auto i = 0; i < N; ++i)
-      for(auto j = 0; j < N; ++j)
-        cin >> A[i][j];
-    solve();
-    #ifdef DEBUG
-    debug();
-    #endif
-    answer();
-  }
+  init();
+  N = 100;
+  for(auto i = 0; i < N; ++i)
+    for(auto j = 0; j < N; ++j)
+      cin >> A[i][j];
+  solve();
+  #ifdef DEBUG
+  debug();
+  #endif
+  answer();
 
   return 0;
 }
