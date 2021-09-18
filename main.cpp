@@ -131,7 +131,7 @@ ll NUM_TEST_CASE = 1;
 ///////// Main /////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////
 
-ll N,M,K,A[NMAX][NMAX],B[NMAX][NMAX],C[NMAX][NMAX],D,E,NOM;
+ll N,M,K,A[NMAX][NMAX],B[NMAX][NMAX],C[NMAX][NMAX],D,E;
 
 struct Mountain {
   p pos;
@@ -141,12 +141,13 @@ struct Mountain {
 typedef std::vector<Mountain> ans_t;
 
 #define NUM_BRANCH 3
-
+ll Q = 100, NOM = 100;
 ans_t branch[NUM_BRANCH];
 ans_t ans;
 
 void greedy(){
-
+  // TODO
+  ans = {{{0, 0}, 100}};
 }
 ll calc_diff(){
   ll diff = 0;
@@ -158,13 +159,13 @@ ll calc_diff(){
 void create_branch() {
   for (int i = 0; i < NUM_BRANCH; i++)
   {
-    branch[i] = vector<Mountain>(QMAX);
+    branch[i] = vector<Mountain>(Q);
     FOR(j,N) branch[i][j] = ans[j]; // とりあえずansをコピー
 
     for(int j = 0; j < NOM; ++j)
     {
       // 1こ選んで
-      size_t chg_index = rand() % QMAX;
+      size_t chg_index = rand() % Q;
       // ガチランダムで適当に生成
       ll i_rand = rand() % 100;
       ll j_rand = rand() % 100;
@@ -175,13 +176,21 @@ void create_branch() {
     }
   }
 }
-void select_branch() { ans = branch[0]; }
-void update_NOM() { --NOM; }
+void select_branch() {
+  // TODO
+  ans = branch[0];
+}
+void update_NOM() {
+  // TODO
+  --NOM;
+}
 ll calc_score(ans_t ans_cand){
   ll basePoints = 2e8 - calc_diff();
+  // TODO: calc bonus
   return basePoints;
 }
 void calc_B(ans_t ans_cand){
+  // TODO
   // for (size_t i = 0; i < ans.size(); i++)
   // {
 
@@ -190,17 +199,23 @@ void calc_B(ans_t ans_cand){
 }
 void debug(){
   // output debug information
-
+  // FOR(j,N) { DUMPV(A[j], N); cout << endl; }
+  cout << "ans: " << endl;
+  for (size_t i = 0; i < ans.size(); i++)
+  {
+    printf("i: %d, X: %d, Y: %d, H: %lld\n",
+      i, ans[i].pos.fi, ans[i].pos.se, ans[i].h);
+  }
 }
 void solve(){
   // まずいっこ
-  NOM = 1000;
+  NOM = 100;
   greedy();
   // Simulate Annealing
   // ll diff = calc_diff();
   ll score = INT_MAX;
   int t = 0;
-  int MAX_TIME = 5;
+  int MAX_TIME = 1;
 
   while(t < MAX_TIME/* && diff > 0*/) {
     create_branch();
@@ -226,7 +241,7 @@ void answerYesNo(){
 }
 void init(){
   // initialize for each test case
-  // Fill(dp, -1);
+  Fill(B, 0);
 }
 int main(int argc, char const *argv[])
 {
