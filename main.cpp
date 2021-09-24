@@ -1,11 +1,8 @@
 #include <bits/stdc++.h>
-// #include <atcoder/all>
 using namespace std;
-
 
 // 重要: 本番時にはコメントアウトする
 #define DEBUG
-
 
 
 /////////////////////////////////////////////////////////////////////////////////////
