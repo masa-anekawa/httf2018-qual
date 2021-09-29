@@ -2,9 +2,13 @@
 
 ## Prerequisites
 - bits/stdc++.h がインクルード可能な状態になっている必要がある。
+- [boost](https://www.boost.org/) か、 C++17以上の標準ライブラリが必要。
 
 ## Build
-`$ make` でおk
+
+~~make でおk~~
+
+**Boostを使用するためにCMakeでビルドしている。MakefileをいじればGNU Makeで動くかも**
 
 ## Generate Inputs and Answers
 スモールサイズでのテストを容易にするため、ランダムに問題の入力と正解を吐き出す関数を用意した。
