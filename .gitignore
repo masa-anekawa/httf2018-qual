@@ -1,2 +1,5 @@
-a.out
-generated_n10/
+*.out
+generated_n*/
+submit.cpp
+build/
+tmp.*

@@ -1,8 +1,35 @@
 #include <bits/stdc++.h>
+
+// #define BOOST
+
+#ifdef BOOST
+
+#include <boost/filesystem.hpp>
+#include <boost/random.hpp>
+#include <boost/random/random_device.hpp>
+namespace fs = boost::filesystem;
+namespace rd = boost::random;
+
+#else
+
+#include <random>
+#include <filesystem>
+
+namespace fs = std::filesystem;
+namespace rd = std;
+
+#endif
+
+
 using namespace std;
 
 // 重要: 本番時にはコメントアウトする
-#define DEBUG
+// #define DEBUG
+
+#ifdef DEBUG
+  // #define DEBUG_ANS
+  // #define DEBUG_BOARD
+#endif // DEBUG
 
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -24,11 +51,6 @@ typedef vector<vecll> matll;
 // const int INF  = 1e9+5;
 // const long long INFLL = 1e18+5;
 // const int MOD  = 1e9 + 7;
-
-// frequently used macros
-#define FOR(i, N) for(int (i) = 0; (i) < (N); ++(i))
-#define FOR2(i, j, N, M) for(int (i) = 0; (i) < (N); ++(i)) \
-  for(int (j) = 0; (j) < (M); ++(j))
 
 #if __cplusplus >= 201103L
 #define ALL(v) begin(v),end(v)
@@ -54,7 +76,7 @@ memset((from), 0, sizeof(from)); } while(0)
 #ifndef DEBUG
 
 #define DUMP(x) do{}while(0)
-void debug(const char* format, ...){}
+void debug(const char*, ...){}
 #define DUMPV(v,c)
 
 #else
@@ -125,8 +147,14 @@ const int BASE_POINT_MAX = 2e8;
 const int N_MAX = 105;   // 盤面幅・高さの最大値(少し大きめに)
 // const int A_MAX = 100005;
 // const int Q_MAX = 1005;
-const int NUM_BRANCH = 3; // 近傍探索数
-const int MAX_TIME = 50;   // 探索回数の上限
+
+
+ll N = 100;               // 盤面の幅(=高さ)
+ll Q = 1000;               // 解ベクトルの長さ
+const int NUM_BRANCH = 4; // 近傍探索数
+const int MAX_TIME = 40;   // 探索回数の上限
+ll NOM = Q;       // Number of Modifications(1つの解ベクトルに対するランダムな変異の回数)
+double threshold = 0.8; // よりスコアが高くなる近傍があるとき、その最大スコア近傍に遷移する確率
 
 /**
  * 1つのブランチにQ回の変異を起こさせるような、diffの値。
@@ -134,16 +162,13 @@ const int MAX_TIME = 50;   // 探索回数の上限
  * 反対に <code>ansScore</code> がこれより低ければ、変異はQ回より減る。
  * diffが0の場合、変異は起こらなくなる。
  */
-const ll BASE_DIFF = 500;
+const ll BASE_DIFF = 100 * 100 * 1000 * 10;
 
-int NOM = 10;       // Number of Modifications(1つの解ベクトルに対するランダムな変異の回数)
+
 int annealing_time = 0;
 ll A[N_MAX][N_MAX];      // 入力
 ll B[N_MAX][N_MAX];      // 解候補ベクトルから生成した盤面(使いまわす)
-ll N = 10;               // 盤面の幅(=高さ)
-ll Q = 10;               // 解ベクトルの長さ
 ll ansScore = LLONG_MAX; // 解候補のスコア
-double threshold = 0.8; // よりスコアが高くなる近傍があるとき、その最大スコア近傍に遷移する確率
 
 ans_t branch[NUM_BRANCH]; // 近傍
 ans_t ans; // 解ベクトル
@@ -158,28 +183,31 @@ std::function<double()> randomDouble; // [0, 1) の範囲で乱数を返す関�
 
 /// ランダム関数の初期化
 void initRandomFunction() {
-  std::random_device randomDevice;
+  rd::random_device randomDevice;
   std::vector<uint32_t> randomSeedVector(10);
   std::generate(randomSeedVector.begin(), randomSeedVector.end(), std::ref(randomDevice));
-  std::seed_seq randomSeed(randomSeedVector.begin(), randomSeedVector.end());
+  rd::seed_seq randomSeed(randomSeedVector.begin(), randomSeedVector.end());
 
-  std::mt19937 randomEngine(randomSeed);
+  rd::mt19937 randomEngine(randomSeed);
 
   randomDouble = std::bind(std::uniform_real_distribution<>(), randomEngine);
 }
 
+#ifdef DEBUG_ANS
 /// デバッグ用関数
 void DUMP_ANS(ans_t a) {
-  #ifdef DEBUG
   debug("[");
-  FOR(h, Q-1) debug("{{%d, %d}, %d}, ", a[h].pos.fi, a[h].pos.se, a[h].h);
+  for (int h = 0; h < Q-1; ++h) debug("{{%d, %d}, %d}, ", a[h].pos.fi, a[h].pos.se, a[h].h);
   debug("{{%d, %d}, %d}]\n", a[Q-1].pos.fi, a[Q-1].pos.se, a[Q-1].h);
-  #endif
 }
+#else
+void DUMP_ANS(ans_t) {}
+#endif
+
 
 /// デバッグ用関数
 void DUMP_A() {
-  #ifdef DEBUG
+  #ifdef DEBUG_BOARD
   for (int i = 0; i < N; i++)
   {
     cout << "\t";
@@ -195,7 +223,7 @@ void DUMP_A() {
 
 /// デバッグ用関数
 void DUMP_B() {
-  #ifdef DEBUG
+  #ifdef DEBUG_BOARD
   for (int i = 0; i < N; i++)
   {
     cout << "\t";
@@ -212,16 +240,16 @@ void DUMP_B() {
 /// デバッグ用関数
 void debug(){
   // output debug information
-  // FOR(j,N) { DUMPV(A[j], N); cout << endl; }
+  // for (int j = 0; j < N; ++j) { DUMPV(A[j], N); cout << endl; }
   cout << "ans: " << endl;
-  for (int i = 0; i < ans.size(); i++)
+  for (int i = 0; i < (int)ans.size(); i++)
   {
     printf("i: %d, X: %d, Y: %d, H: %lld\n",
       i, ans[i].pos.fi, ans[i].pos.se, ans[i].h);
   }
   cout << "B: " << endl;
-  FOR(i, N) {
-    FOR(j,N-1) printf("%3lld, ", B[i][j]);
+  for (int i = 0; i < N; ++i) {
+    for (int j = 0; j < N-1; ++j) printf("%3lld, ", B[i][j]);
     printf("%3lld\n", B[i][N-1]);
   }
 }
@@ -234,7 +262,7 @@ void debug(){
 /// 初期解を生成する
 ans_t generateRandomAnswer(){
   auto ret = vector<Mountain>(Q);
-  FOR(k, Q) {
+  for (int k = 0; k < Q; ++k) {
     int i = randomDouble() * N;
     int j = randomDouble() * N;
     int h = randomDouble() * N + 1; // 1 <= H <= N
@@ -250,14 +278,14 @@ ans_t generateRandomAnswer(){
 /// 解ベクトルからBの盤面を計算する
 void calcB(ans_t ans_cand){
   Fill(B, 0);
-  for (size_t i = 0; i < ans_cand.size(); i++)
+  for (int i = 0; i < (int)ans_cand.size(); i++)
   {
     int y = ans_cand[i].pos.fi;
     int x = ans_cand[i].pos.se;
     int h = ans_cand[i].h;
-    for (size_t j = max(0, y - h); j < min<int>(N, y + h); j++)
+    for (int j = max(0, y - h); j < min<int>(N, y + h); j++)
     {
-      for (size_t k = max(0, x - h); k < min<int>(N, x + h); k++)
+      for (int k = max(0, x - h); k < min<int>(N, x + h); k++)
       {
         B[j][k] += max<int>(0, h - abs<int>(j - y) - abs<int>(k - x));
       }
@@ -271,8 +299,8 @@ void calcB(ans_t ans_cand){
 /// AとBの差分を計算する
 ll calcDiff(){
   ll diff = 0;
-  FOR(i,N)
-    FOR(j,N)
+  for (int i = 0; i < N; ++i)
+    for (int j = 0; j < N; ++j)
       diff += abs(A[i][j] - B[i][j]);
   return diff;
 }
@@ -282,7 +310,7 @@ ll calcDiff(){
 ll calcScore(ans_t ans_cand){
   calcB(ans_cand);
   ll diff = calcDiff();
-  debug("diff: %lld\n", diff);
+  // debug("diff: %lld\n", diff);
   ll basePoints = BASE_POINT_MAX - diff;
   // TODO: calc bonus
   return basePoints;
@@ -294,9 +322,9 @@ void createBranch() {
   // debug("Starting createBranch()...\n");
   for (int i = 0; i < NUM_BRANCH; i++)
   {
-    debug("Starting to alternate branch[%d]...\n", i);
+    // debug("Starting to alternate branch[%d]...\n", i);
    branch[i] = vector<Mountain>(Q);
-    FOR(j,Q) branch[i][j] = ans[j]; // とりあえずansをコピー
+    for (int j = 0; j < Q; ++j) branch[i][j] = ans[j]; // とりあえずansをコピー
 
     for(int k = 0; k < NOM; ++k)
     {
@@ -313,7 +341,7 @@ void createBranch() {
       Mountain chg = Mountain{{i_rand, j_rand}, h_rand};
       branch[i][chg_index] = chg;
     }
-    debug("Finished alternating branch[%d] to:\n\t", i);
+    // debug("Finished alternating branch[%d] to:\n\t", i);
     DUMP_ANS(branch[i]);
   }
   // debug("Finished createBranch().\n");
@@ -328,25 +356,25 @@ void selectBranch() {
   for (int i = 0; i < NUM_BRANCH; i++)
   {
     ll candScore = calcScore(branch[i]);
-    debug("candScore for branch[%d]: %lld\n", i, candScore);
+    // debug("candScore for branch[%d]: %lld\n", i, candScore);
     if (candScore > maxScore) {
       maxScore = candScore;
       maxAns = branch[i];
     }
   }
   if (ansScore != maxScore) {
-    debug("Better solution found. Throwing a dice...\n");
+    // debug("Better solution found. Throwing a dice...\n");
     if (randomDouble() < threshold)
     {
-      debug("Transitioned to new answer (Q: %d, score: %lld).\n",
-        maxAns.size(), maxScore);
+      // debug("Transitioned to new answer (Q: %d, score: %lld).\n",
+        // maxAns.size(), maxScore);
       ans = maxAns;
       ansScore = maxScore;
     }
     else
     {
-      debug("Stayed at current answer (Q: %d, score: %lld).\n",
-        ans.size(), ansScore);
+      // debug("Stayed at current answer (Q: %d, score: %lld).\n",
+        // ans.size(), ansScore);
     }
   }
   // debug("Finished selectBranch().\n");
@@ -355,7 +383,8 @@ void selectBranch() {
 
 /// NOM(変化させる山型足し算の数。焼き鈍し法おける温度T)を低減する
 void updateNOM() {
-  NOM = Q * (double)(BASE_POINT_MAX - ansScore) / BASE_DIFF;
+  NOM = (double)(BASE_POINT_MAX - ansScore) / BASE_DIFF * Q;
+  assert(NOM > 0);
   DUMP(NOM);
 }
 
@@ -366,7 +395,7 @@ void solve(){
   // debug("Starting solve()...\n");
 
   for(annealing_time = 0; annealing_time < MAX_TIME && ansScore <= BASE_POINT_MAX; ++annealing_time) {
-    debug("Starting search #%d...\n", annealing_time+1);
+    // debug("Starting search #%d...\n", annealing_time+1);
     createBranch();
     selectBranch();
     updateNOM();
@@ -383,18 +412,17 @@ void answer(){
   // Uncomment if double
   // cout << fixed << setprecision(8);
   cout << ans.size() << endl;
-  FOR(i, ans.size()) printf("%d %d %lld\n",
+  for(int i = 0; i < (int)ans.size(); ++i) printf("%d %d %lld\n",
     ans[i].pos.first,
     ans[i].pos.second,
     ans[i].h);
-  debug("Finished answer().\nFinal Score is %lld.\n", ansScore);
 }
 
 
 /// 初期化処理
 void init(){
   // 定数を表示
-  debug("Given numbers:\n\tN: %d, Q: %d, MAX_TIME: %d, BASE_DIFF: %lld\n",
+  debug("Given numbers:\n\tN: %d, Q: %d, MAX_TIME: %d, BASE_DI  F: %lld\n",
     N, Q, MAX_TIME, BASE_DIFF);
 
   // initialize for each test case
@@ -412,14 +440,21 @@ void init(){
  * サンプルと異なるサイズで検証が可能。
  */
 void export_ans() {
+  // ディレクトリを作る
   std::ostringstream stringStream;
-  stringStream << "generated_n" << Q << "/" << rand() % 10000 << ".txt";
+  stringStream << "generated_n" << Q << "/";
+  std::string dirname = stringStream.str();
+
+  fs::create_directory(dirname);
+
+  // ファイルを作る
+  stringStream << (int)(randomDouble() * 10000) << ".txt";
   std::string filename = stringStream.str();
 
   std::ofstream file;
   file.open(filename, std::ios::out);
-  FOR(i,N) {
-    FOR(j, N-1) file << B[i][j] << " ";
+  for (int i = 0; i < N; ++i) {
+    for (int j = 0; j < N - 1; ++j) file << B[i][j] << " ";
     file << B[i][N-1] << endl;
   }
   file.close();
@@ -428,6 +463,9 @@ void export_ans() {
 
 int main(int argc, char const *argv[])
 {
+  // std::chrono::system_clock::time_point start, end;
+  // start = std::chrono::system_clock::now();
+
   init();
 
   if (argc > 1 && strcmp(argv[1], "--generate") == 0) {
@@ -439,8 +477,11 @@ int main(int argc, char const *argv[])
   for(auto i = 0; i < N; ++i)
     for(auto j = 0; j < N; ++j)
       cin >> A[i][j];
-  debug ("Input board A loaded.\nA is:\n");
-  DUMP_A();
+
+  #ifdef DEBUG_ANS
+    debug ("Input board A loaded.\nA is:\n");
+    DUMP_A();
+  #endif // DEBUG_ANS
 
   solve();
 
@@ -449,6 +490,13 @@ int main(int argc, char const *argv[])
   #endif
 
   answer();
+
+  // printf("Finished answer().\nFinal Score is %lld.\n", ansScore);
+
+  // end = std::chrono::system_clock::now();
+  // auto duration = end - start;
+  // auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+  // cout << "total time: " << msec << "msec" << endl;
 
   return 0;
 }
