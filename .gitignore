@@ -3,3 +3,8 @@ generated_n*/
 submit.cpp
 build/
 tmp.*
+
+# GNU global tags
+GTAGS
+GPATH
+GRTAGS
